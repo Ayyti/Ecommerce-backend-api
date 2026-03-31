@@ -6,9 +6,9 @@ const loggedIn = require("../utils/LoggedIn");
 
 const ownerModel =  require('../models/owner.model');
 
-router.get('/', (req, res) => {
-    res.send("Owners Home Page");
-});
+// router.get('/', (req, res) => {
+//     res.send("Owners Home Page");
+// });
 
 //if(process.env.NODE_ENV==='development'){
     router.post("/create", async function(req,res){

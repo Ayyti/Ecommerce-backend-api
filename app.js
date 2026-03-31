@@ -9,7 +9,7 @@ const usersRouter = require("./routes/userRouter");
 const productsRouter = require("./routes/productRouter");
 const cartRouter = require("./routes/cartRouter");
 
-const db = require("./config/mongoose-connection");
+//const db = require("./config/mongoose-connection");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -24,10 +24,9 @@ app.use("/products", productsRouter);
 app.use("/cart", cartRouter);
 
 
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
 app.get("/", (req, res) => {
     res.render("index");
 });
 
-app.listen(3000);
+//app.listen(3000);
+module.exports = app;

@@ -34,6 +34,8 @@ const router = express.Router();
 const userModel = require("../models/users.model"); // Why: To talk to the User collection in DB
 const bcrypt = require("bcrypt"); // Why: To scramble the password for safety
 const jwt = require("jsonwebtoken"); // Why: To create a token for the user to stay logged in
+const { default: rateLimit } = require('express-rate-limit');
+const   rateLimiter = require ('../utils/rate-limiter');
 router.post("/register", async function (req, res) {
     try {
         let { email, password, fullname } = req.body;
@@ -44,9 +46,9 @@ router.post("/register", async function (req, res) {
         if (user) return res.status(401).send("You already have an account, please login.");
 
         // 2. Scramble (Hash) the password
-        bcrypt.genSalt(10, function (err, salt) {
-            bcrypt.hash(password, salt, async function (err, hash) {
-                if (err) return res.send(err.message);
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(password, salt);
+               
 
                 // 3. Actually create the user in MongoDB
                 let newUser = await userModel.create({
@@ -55,21 +57,19 @@ router.post("/register", async function (req, res) {
                     fullname
                 });
 
-// 1. Generate the Token (The ID Card)
-                // "secretkey" is a private password only your server knows
-                //let token = jwt.sign({ email: email, id: newUser._id }, "secretkey");
                 let token = jwt.sign({ email: email, id: newUser._id }, process.env.JWT_KEY || "secretkey");
 
                 // 2. Set the Cookie in the browser
                 res.cookie("token", token);
 
-                res.send("User created! Go check your MongoDB Compass/Atlas.");
-            });
-        });
+                res.status(201).send("User created! Go check your MongoDB Compass/Atlas.");
+            }
 
-    } catch (err) {
+    catch(err) {
+        console.log("REGISTER ERROR :", err.message);
         res.send(err.message);
-    }
+
+}
 });
 
 
@@ -85,25 +85,25 @@ router.post("/register", async function (req, res) {
 //             return res.status(401).send("Wrong password, try again.");
     
 router.post("/login", async function (req, res) {
+    try{
     let { email, password } = req.body;
     let user =  await userModel.findOne ({ email: email });
     if (!user) 
         return res.status(401).send("You are not a registered user, please sign in first.");
 
 
+    const result = await bcrypt.compare(password,user.password);
 
+    if(!result) return res.status(401).send("wrong password,try again");
+    let token = jwt.sign({email:email ,id: user._id}, "secretkey");
+    res.cookie("token",token);
+    res.status(200).send("You are now logged in!");
+}
 
-    bcrypt.compare(password, user.password, async function (err, result) {
-        if (err) return res.status(500).send("Server error, try again later.");
-        if (!result) return res.status(401).send("Wrong password, try again.");
-    //. Generate the Token (The ID Card)
-                // "secretkey" is a private password only your server knows
-                let token = jwt.sign({ email: email , id: user._id}, "secretkey");
-
-                // 2. Set the Cookie in the browser
-                res.cookie("token", token);
-                res.send("You are now logged in!");
-    });
+catch{
+    console.log("LOGIN ERROR:", err.message);
+    res.status(501).send("Unknown error");
+}
 
 });
 
